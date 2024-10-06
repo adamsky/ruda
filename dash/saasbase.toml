@@ -1,0 +1,19 @@
+address = "127.0.0.1:10000"
+version = "0.1.0"
+
+[dev] 
+enabled = true
+mock = false
+mock_regen = true
+autologin = "test@mail.com"
+
+[assets]
+serve = false
+
+[registration]
+enabled = true
+email = true
+oauth = true
+
+[oauth]
+enabled = true
