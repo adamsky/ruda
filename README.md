@@ -1,5 +1,7 @@
 ## <img src="dash/assets/images/ruda-logo.png" width="300">
 
+[![Static Badge](https://img.shields.io/badge/discord-server-blue)](https://discord.gg/gyYhPyTy4s)
+
 Open source, self-hostable, rather unorthodox alternative to popular PaaS
 products such as Coolify, Heroku, Netlify, Vercel.
 
