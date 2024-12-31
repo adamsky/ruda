@@ -2,5 +2,9 @@
 name = "ruda-api"
 version = "0.1.0"
 edition = "2021"
+authors = ["Adam Wierchoła <adam@wierchola.com>"]
+repository = "https://github.com/adamsky/ruda"
+keywords = ["ruda", "api", "paas", "cargo"]
+license = "MIT"
 
 [dependencies]

@@ -2,7 +2,7 @@ use askama::Template;
 use axum::{
     extract::Query,
     response::{IntoResponse, Redirect, Response},
-    routing::get,
+    routing::{get, post},
     Extension,
 };
 use saasbase::{
@@ -17,7 +17,7 @@ use super::partial::Head;
 pub fn router() -> Router {
     Router::new()
         .route("/login", get(login))
-        .route("/register", get(register))
+        .route("/register", get(register).post(Redirect::to("/signup")))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Template)]

@@ -4,26 +4,36 @@ use saasbase::{Database, UserId};
 
 use crate::{
     config::Config,
-    data::{self, Application, Machine, Project, Source, UserData},
+    data::{self, App, Machine, Project, Source, UserData},
     Result,
 };
 
 pub fn generate(config: &Config, db: &Database) -> Result<()> {
+    for n in 0..1 {
+        let _ = user(config, db)?;
+    }
+
+    log::info!("users in db: {}", db.len::<saasbase::User>()?);
+    log::info!("apps in db: {}", db.len::<data::App>()?);
+
+    Ok(())
+}
+
+pub fn user(config: &Config, db: &Database) -> Result<()> {
     let user = saasbase::mock::user(&config.base, db)?;
-    println!("user id: {}", user.id);
 
     let project = Project {
         id: Uuid::new_v4(),
         owner: user.id,
-        name: project_namegen().next().unwrap(),
         acl: vec![],
+        ..Default::default()
     };
     db.set(&project)?;
     let project = Project {
         id: Uuid::new_v4(),
         owner: user.id,
-        name: project_namegen().next().unwrap(),
         acl: vec![],
+        ..Default::default()
     };
     db.set(&project)?;
 
@@ -34,22 +44,22 @@ pub fn generate(config: &Config, db: &Database) -> Result<()> {
     };
     db.set(&app_user)?;
 
-    println!("just set app user: {}", app_user.id);
-
     let source = Source {
         id: Uuid::new_v4(),
         owner: user.id,
-        project: project.id,
+        projects: vec![project.id],
         installation_id: None,
+        installation_time: chrono::Utc::now(),
     };
     db.set(&source)?;
 
-    let application = Application {
+    let application = App {
         id: Uuid::new_v4(),
         owner: user.id,
         project: project.id,
-        name: application_namegen().next().unwrap(),
         avatar: Uuid::new_v4(),
+        source_url: "github.com/app/source".to_string(),
+        ..Default::default()
     };
     db.set(&application)?;
 
@@ -57,89 +67,13 @@ pub fn generate(config: &Config, db: &Database) -> Result<()> {
         id: Uuid::new_v4(),
         owner: user.id,
         project: project.id,
-        name: machine_namegen().next().unwrap(),
-        status: "OK".to_string(),
+        kind: data::machine::Kind::Unmanaged,
+        status: data::machine::Status::Disconnected,
+        secret: Uuid::new_v4(),
+        address: "localhost".to_string(),
+        ..Default::default()
     };
     db.set(&machine)?;
 
     Ok(())
-}
-
-pub fn project_namegen<'a>() -> names::Generator<'a> {
-    names::Generator::new(
-        &[
-            "remarkable",
-            "monumental",
-            "great",
-            "massive",
-            "worthy",
-            "huge",
-            "laudable",
-            "ambitious",
-        ],
-        &[
-            "scheme",
-            "undertaking",
-            "plan",
-            "outline",
-            "design",
-            "campaign",
-            "operation",
-            "endeavour",
-            "effort",
-        ],
-        names::Name::Numbered,
-    )
-}
-
-pub fn machine_namegen<'a>() -> names::Generator<'a> {
-    names::Generator::new(
-        &[
-            "busy",
-            "dilligent",
-            "energetic",
-            "zealous",
-            "nimble",
-            "earnest",
-            "resolute",
-            "vigorous",
-        ],
-        &[
-            "automaton",
-            "widget",
-            "engine",
-            "instrument",
-            "gadget",
-            "robot",
-            "workhorse",
-            "mechanism",
-            "thingamabob",
-        ],
-        names::Name::Numbered,
-    )
-}
-
-pub fn application_namegen<'a>() -> names::Generator<'a> {
-    names::Generator::new(
-        &[
-            "clever",
-            "sharp",
-            "astute",
-            "able",
-            "perceptive",
-            "apt",
-            "acute",
-            "bright",
-        ],
-        &[
-            "implementation",
-            "execution",
-            "practice",
-            "exercise",
-            "effort",
-            "labour",
-            "program",
-        ],
-        names::Name::Numbered,
-    )
 }

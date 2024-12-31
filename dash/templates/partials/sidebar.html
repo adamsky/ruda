@@ -1,5 +1,5 @@
 <!-- Sidebar -->
-<aside class="navbar navbar-vertical navbar-expand" data-bs-theme="dark">
+<aside class="navbar navbar-vertical navbar-expand" data-bs-theme="dark" hx-boost="true">
   <div class="container-fluid">
     <div class="navbar-brand navbar-brand-autodark">
       <a href="/">
@@ -18,10 +18,8 @@
       </div>
       <ul class="navbar-nav pt-lg-3">
         {% for entry in sidebar.entries %}
-        <li class="nav-item {% if entry.active %} active {% endif %} {% if entry.dropdown %} dropdown {% endif %}">
-          <a class="nav-link {% if entry.dropdown %} dropdown-toggle {% endif %}" href="{{ entry.url }}"
-           {% if entry.dropdown %} data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="false" {% endif%}
-          >
+        <li class="nav-item {% if entry.active %} active {% endif %}">
+          <a class="nav-link" href="{{ entry.url }}">
             <span class="nav-link-icon d-md-none d-lg-inline-block">
               {% if entry.name == "Summary" %}
               <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-align-box-bottom-center"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M9 15v2" /><path d="M12 11v6" /><path d="M15 13v4" /></svg>
@@ -39,6 +37,8 @@
               <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-key"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" /><path d="M15 9h.01" /></svg>
               {% else if entry.name == "Integrations" %}
               <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-plug-connected"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 12l5 5l-1.5 1.5a3.536 3.536 0 1 1 -5 -5l1.5 -1.5z" /><path d="M17 12l-5 -5l1.5 -1.5a3.536 3.536 0 1 1 5 5l-1.5 1.5z" /><path d="M3 21l2.5 -2.5" /><path d="M18.5 5.5l2.5 -2.5" /><path d="M10 11l-2 2" /><path d="M13 14l-2 2" /></svg>
+              {% else if entry.name == "Account" %}
+              <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-user"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>
 
               {% endif %}
             </span>
@@ -46,21 +46,14 @@
               {{ entry.name }}
             </span>
           </a>
-          {% if entry.dropdown %}
-          <div class="dropdown-menu" data-bs-popper="static">
-            <div class="dropdown-menu-column">
-              {% for child in entry.children %} 
-              <a class="dropdown-item" href="{{ child.url }}">
-                {{ child.name }}
-                <span class="badge badge-sm bg-green-lt text-uppercase ms-auto">New</span>
-              </a>
-              {% endfor %}
-            </div>
-          </div>
-          {% endif %}
         </li>
         {% endfor %}
       </ul>
+    </div>
+    <div class="m-2">
+      <div class="alert alert-warning" role="alert">
+        Uh oh, something went wrong
+      </div>
     </div>
   </div>
 </aside>

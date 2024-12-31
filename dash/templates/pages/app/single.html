@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   {% include "partials/head.html" %}
-  <body>
+  <body {% if user.settings.dark_mode %} data-bs-theme="dark" {% endif %}>
     <div class="page">
       {% include "partials/sidebar.html" %}
       {% include "partials/navbar.html" %}
@@ -9,13 +9,16 @@
 
         <div class="page-header d-print-none">
           <div class="container-xl">
-            <div class="row g-2 align-items-center">
+            <div class="row g-3 align-items-center">
+              <div class="col-auto">
+                <span class="avatar" style="background-image: url(/image/{{ app.inner.avatar }})"></span>
+              </div>
               <div class="col">
                 <div class="page-pretitle">
                   Application
                 </div>
                 <h2 class="page-title">
-                  {{ app.id }}
+                  {{ app.inner.name }}
                 </h2>
               </div>
               <!-- Page title actions -->
@@ -38,20 +41,20 @@
             <div class="row row-cards">
               <div class="col-12">
 
-                <div class="card">
+                <div class="card mb-3">
                   <div class="card-body">
                     <div class="datagrid">
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Account Name</div>
-                        <div class="datagrid-content"></div>
+                        <div class="datagrid-title">Domain Name</div>
+                        <div class="datagrid-content">{{ app.inner.domain }}</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Account Type</div>
-                        <div class="datagrid-content"></div>
+                        <div class="datagrid-title">Managed Domain</div>
+                        <div class="datagrid-content">false</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Installation ID</div>
-                        <div class="datagrid-content"></div>
+                        <div class="datagrid-title">App ID</div>
+                        <div class="datagrid-content">{{ app.inner.id }}</div>
                       </div>
                       <div class="datagrid-item">
                         <div class="datagrid-title">Expiration date</div>
@@ -121,6 +124,63 @@
                         </div>
                       </div>
                     </div>
+                    <div class="form-floating mt-4 mb-3">
+                      <input name="source_url" type="url" class="form-control" id="floating-input" value="{{ app.inner.source_url }}" autocomplete="off"
+                        hx-post="/app/{{ app.inner.id }}/update" hx-trigger="change">
+                      <div style="position: relative !important; height: 0px !important; width: 0px !important; float: left !important;" data-lastpass-icon-root=""></div><label for="floating-input">Git Source URL</label>
+                    </div>
+                  </div>
+                </div>
+
+                
+                <div class="card mb-3">
+                  <div class="table-responsive">
+                    <table class="table table-vcenter table-mobile-md card-table">
+                      <thead>
+                        <tr>
+                          <th>Environment</th>
+                          <th>Branch</th>
+                          <th>Triggers</th>
+                          <th class="w-1"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for env in app.inner.envs %}
+                        <tr style="transform: rotate(0);">
+                          <td data-label="Environment">
+                            <div class="d-flex py-1 align-items-center">
+                              <div class="flex-fill">
+                                <div class="font-weight-medium">{{ env.name }}</div>
+                                <div class="badge bg-green text-green-fg">{{ env.status }}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td data-label="Branch">
+                            <div class="text-secondary">{{ env.branch }}</div>
+                          </td>
+                          <td class="text-secondary" data-label="Triggers">
+                            test
+                          </td>
+                          <td>
+                            <div class="btn-list flex-nowrap">
+                              <a hx-get="/app/{{ app.inner.id }}/env/{{ env.handle }}/deploy" class="btn">
+                                Deploy
+                              </a>
+                              <a href="/app/{{ app.inner.id }}/env/{{ env.handle }}" class="btn">
+                                Edit
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                
+                <div class="card">
+                  <div class="card-body">
                   </div>
                 </div>
 

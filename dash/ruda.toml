@@ -1,11 +1,14 @@
 address = "127.0.0.1:10000"
+domain = "ruda.app"
 version = "0.1.0"
 
+local_runner = true
+
 [dev] 
-enabled = true
-mock = false
+enabled = false
+mock = true
 mock_regen = true
-autologin = "test@mail.com"
+# autologin = "test@mail.com"
 
 [assets]
 serve = false

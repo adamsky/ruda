@@ -1,8 +1,10 @@
+use std::ffi::OsString;
+
 use anyhow::{Error, Result};
 use clap::ArgMatches;
 use clap::{Arg, Command};
 use service_manager::{
-    ServiceInstallCtx, ServiceLabel, ServiceManager, ServiceStartCtx, ServiceStopCtx,
+    ServiceInstallCtx, ServiceLabel, ServiceLevel, ServiceManager, ServiceStartCtx, ServiceStopCtx,
     ServiceUninstallCtx,
 };
 use tokio_util::sync::CancellationToken;
@@ -13,20 +15,37 @@ pub fn cmds() -> Vec<Command> {
     vec![
         Command::new("install")
             .about("Install ruda runner as a system service")
-            .arg(Arg::new("autostart")),
+            .arg(Arg::new("autostart"))
+            .arg(
+                Arg::new("code")
+                    .long("code")
+                    .help("Machine secret found on the ruda dashboard")
+                    .num_args(1),
+            ),
         Command::new("uninstall").about("Uninstall ruda runner as a system service"),
     ]
 }
 
 pub async fn install(matches: &ArgMatches, cancellation: CancellationToken) -> Result<()> {
+    let code = matches.get_one::<String>("code").unwrap();
+
     let label: ServiceLabel = SERVICE_LABEL.parse()?;
-    let manager = <dyn ServiceManager>::native()?;
+    let mut manager = <dyn ServiceManager>::native()?;
+
+    // Update our manager to work with user-level services
+    manager
+        .set_level(ServiceLevel::User)
+        .expect("Service manager does not support user-level services");
 
     // Install our service using the underlying service management platform
     manager.install(ServiceInstallCtx {
         label: label.clone(),
         program: std::env::current_exe()?,
-        args: vec![std::ffi::OsString::from("runner")],
+        args: vec![
+            OsString::from("runner"),
+            OsString::from("--code"),
+            OsString::from(code),
+        ],
         contents: None, // Optional String for system-specific service content.
         username: None, // Optional String for alternative user to run service.
         working_directory: None, // Optional String for the working directory for the service process.
@@ -45,7 +64,11 @@ pub async fn install(matches: &ArgMatches, cancellation: CancellationToken) -> R
 
 pub async fn uninstall(matches: &ArgMatches, cancellation: CancellationToken) -> Result<()> {
     let label: ServiceLabel = SERVICE_LABEL.parse()?;
-    let manager = <dyn ServiceManager>::native()?;
+    let mut manager = <dyn ServiceManager>::native()?;
+
+    manager
+        .set_level(ServiceLevel::User)
+        .expect("Service manager does not support user-level services");
 
     manager.stop(ServiceStopCtx {
         label: label.clone(),

@@ -15,28 +15,34 @@ use crate::Result;
 
 mod partial;
 
+mod account;
 mod app;
+mod integrations;
+mod key;
 mod machine;
+mod notifications;
 mod project;
 mod source;
+mod storage;
 
 mod auth;
-mod settings;
 mod setup;
 mod signup;
 
 pub fn router() -> Router {
     Router::new()
         .route("/", get(home))
-        .route("/machines", get(machine::list))
-        .route("/machine/:id", get(machine::single))
-        .route("/apps", get(app::list))
-        .route("/app/:id", get(app::single))
         .merge(auth::router())
-        .merge(settings::router())
+        .merge(account::router())
+        .merge(machine::router())
+        .merge(app::router())
         .merge(source::router())
+        .merge(storage::router())
         .merge(project::router())
         .merge(setup::router())
+        .merge(integrations::router())
+        .merge(notifications::router())
+        .merge(key::router())
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Template)]

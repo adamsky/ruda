@@ -13,8 +13,11 @@ use saasbase::{
 };
 use uuid::Uuid;
 
-use crate::data::{Project, UserData};
 use crate::Result;
+use crate::{
+    data::{Project, UserData},
+    util,
+};
 
 use super::partial::{Head, Sidebar};
 
@@ -39,9 +42,11 @@ pub async fn current_post(
 ) -> Result<impl IntoResponse> {
     println!("project id: {}", project_id);
 
-    let mut app_user = db.get_or_create::<UserData>(user.id);
-    app_user.current_project = project_id;
-    db.set(&app_user)?;
+    let mut user_data = db
+        .get::<UserData>(user.id)
+        .or_else(|_| util::init_user(user.id, &db))?;
+    user_data.current_project = project_id;
+    db.set(&user_data)?;
 
     Ok([("HX-Refresh", "true")])
 }

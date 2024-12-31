@@ -4,16 +4,17 @@
 extern crate serde_derive;
 
 mod deploy;
-mod login;
 mod install;
+mod login;
 mod runner;
 
 mod config;
 mod util;
 
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use clap::{Arg, ArgMatches, Command};
+use simplelog::{LevelFilter, SimpleLogger};
 use tokio_util::sync::CancellationToken;
 
 use config::Config;
@@ -27,7 +28,15 @@ async fn main() -> anyhow::Result<()> {
 
     let cancel = CancellationToken::new();
 
-    match cmd().get_matches().subcommand() {
+    let matches = cmd().get_matches();
+    let level_filter = if let Some(verbosity) = matches.get_one::<String>("verbosity") {
+        LevelFilter::from_str(verbosity)?
+    } else {
+        LevelFilter::Info
+    };
+    SimpleLogger::init(level_filter, simplelog::Config::default())?;
+
+    match matches.subcommand() {
         Some(("deploy", m)) => deploy::run(m, cancel.clone()).await?,
         Some(("runner", m)) => runner::run(m, config, cancel.clone()).await?,
 
@@ -69,7 +78,7 @@ pub fn cmd() -> Command {
                 .display_order(100)
                 .value_name("level")
                 .default_value("info")
-                .value_parser(["trace", "debug", "info", "warn", "error", "none"])
+                .value_parser(["trace", "debug", "info", "warn", "error", "off"])
                 .global(true)
                 .help("Set the verbosity of the log output"),
         )

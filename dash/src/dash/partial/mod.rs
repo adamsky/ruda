@@ -4,7 +4,7 @@ use saasbase::{Database, UserId};
 use uuid::Uuid;
 
 use crate::data::{Project, UserData};
-use crate::Result;
+use crate::{util, Result};
 
 pub mod footer {
     pub fn year() -> String {
@@ -33,18 +33,14 @@ pub struct SidebarEntry {
     pub name: String,
     pub url: String,
     pub active: bool,
-    pub dropdown: bool,
-    pub children: Vec<SidebarEntry>,
 }
 
 impl Default for SidebarEntry {
     fn default() -> Self {
         Self {
             name: "entry".to_string(),
-            url: "".to_string(),
+            url: "/".to_string(),
             active: false,
-            dropdown: false,
-            children: vec![],
         }
     }
 }
@@ -52,6 +48,7 @@ impl Default for SidebarEntry {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Sidebar {
     pub entries: Vec<SidebarEntry>,
+
     pub projects: Vec<Project>,
     pub current_project_id: Uuid,
 }
@@ -87,30 +84,23 @@ impl Default for Sidebar {
                     ..Default::default()
                 },
                 SidebarEntry {
-                    name: "Notifications".to_string(),
-                    url: "/notifications".to_string(),
-                    ..Default::default()
-                },
-                SidebarEntry {
                     name: "Keys".to_string(),
                     url: "/keys".to_string(),
                     ..Default::default()
                 },
                 SidebarEntry {
                     name: "Integrations".to_string(),
-                    children: vec![
-                        SidebarEntry {
-                            name: "Cloudflare".to_string(),
-                            url: "/cloudflare".to_string(),
-                            ..Default::default()
-                        },
-                        SidebarEntry {
-                            name: "Hetzner".to_string(),
-                            url: "/hetzner".to_string(),
-                            ..Default::default()
-                        },
-                    ],
-                    dropdown: true,
+                    url: "/integrations".to_string(),
+                    ..Default::default()
+                },
+                SidebarEntry {
+                    name: "Notifications".to_string(),
+                    url: "/notifications".to_string(),
+                    ..Default::default()
+                },
+                SidebarEntry {
+                    name: "Account".to_string(),
+                    url: "/account".to_string(),
                     ..Default::default()
                 },
             ],
@@ -120,10 +110,7 @@ impl Default for Sidebar {
 }
 
 impl Sidebar {
-    // TODO: this should match on enum
     pub fn at(name: &str, user_id: UserId, db: &Database) -> Result<Self> {
-        println!("sidebar::at: user id: {}", user_id);
-
         let mut s = Self::default();
         for entry in &mut s.entries {
             if &entry.name == name {
@@ -136,7 +123,10 @@ impl Sidebar {
             .into_iter()
             .filter(|p| p.owner == user_id)
             .collect();
-        s.current_project_id = db.get::<UserData>(user_id)?.current_project;
+        s.current_project_id = db
+            .get::<UserData>(user_id)
+            .or_else(|_| util::init_user(user_id, db))?
+            .current_project;
 
         Ok(s)
     }

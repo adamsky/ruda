@@ -1,16 +1,30 @@
+#![allow(warnings)]
+
+pub mod msg;
+
 use anyhow::Result;
+use futures_util::{SinkExt, StreamExt};
+use msg::Message;
 use tokio::{process::Command, task::JoinHandle};
+// use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
+use uuid::Uuid;
+
+use crate::api;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub platform_address: String,
+
+    pub code: Uuid,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             platform_address: "realtime.ruda.app".to_string(),
+
+            code: Uuid::nil(),
         }
     }
 }
@@ -34,22 +48,57 @@ pub struct Handle {
 /// The dashboard can be used to spawn and manage exiting runners.
 pub fn spawn(config: Config, cancel: CancellationToken) -> Result<Handle> {
     let join = tokio::spawn(async move {
+        log::info!("connecting to ws://{}...", config.platform_address);
+
         // establish a duplex connection with the platform
-        let client =
-            tokio_tungstenite::connect_async(format!("{}/{}", config.platform_address, "")).await?;
+        let (stream, _) = tokio_tungstenite::connect_async("ws://localhost:10001").await?;
+        // let (stream, _) =
+        //     tokio_tungstenite::connect_async(format!("ws://{}", config.platform_address)).await?;
 
-        let mut cmd = Command::new("").spawn()?;
+        log::info!("connected ws");
 
-        tokio::select! {
-            status = cmd.wait() => {
-                let status = status?;
-                println!("exited with status: {:?}", status.code());
-            },
-            _ = cancel.cancelled() => {},
+        let (mut write, mut read) = stream.split();
+
+        // Introduce ourselves with the secret code
+        write
+            .send(Message::IntroductionRequest(config.code).try_into()?)
+            .await?;
+
+        // let mut cmd = Command::new("").spawn()?;
+
+        loop {
+            tokio::select! {
+                Some(Ok(msg)) = read.next() => {
+                    println!("msg: {:?}", msg);
+                    if let Some(resp) = handle_msg(msg.try_into()?).await? {
+                        write.send(resp.try_into()?).await?;
+                    }
+                },
+                // status = cmd.wait() => {
+                //     let status = status?;
+                //     println!("exited with status: {:?}", status.code());
+                // },
+                _ = cancel.cancelled() => break,
+            }
         }
 
         Result::Ok(())
     });
 
     Ok(Handle { join, comms: () })
+}
+
+pub async fn handle_msg(msg: Message) -> Result<Option<Message>> {
+    match msg {
+        Message::StatusRequest => {
+            let sys = sysinfo::System::new_all();
+            let num_cpus = sys.cpus().len();
+            Ok(Some(Message::StatusResponse(format!("cpus: {num_cpus}"))))
+        }
+        Message::IntroductionResponse(ok) => {
+            log::info!("introduction ok: {ok}");
+            Ok(None)
+        }
+        _ => unimplemented!(),
+    }
 }

@@ -8,11 +8,15 @@ use axum::{
 use octocrab::{models::Installation, Octocrab};
 use saasbase::{
     axum::{askama::HtmlTemplate, ConfigExt, DbExt},
-    Router,
+    Database, Router,
 };
 use uuid::Uuid;
 
-use crate::{data, extract, Result};
+use crate::{
+    data,
+    extract::{self, User},
+    Result,
+};
 
 use super::partial::{Head, Sidebar};
 
@@ -96,7 +100,15 @@ pub async fn list(
     Extension(db): DbExt,
     Extension(octocrab): Extension<Octocrab>,
 ) -> Result<impl IntoResponse> {
-    let _sources = db.get_collection::<data::Source>()?;
+    // preemptively recreate the sources from third-party provider
+    recreate(&user, &db, octocrab.clone())
+        .await
+        .inspect_err(|e| log::warn!("{}", e.to_string()));
+
+    let _sources = db
+        .get_collection::<data::Source>()?
+        .into_iter()
+        .filter(|s| s.owner == user.base.id);
     let mut sources = vec![];
 
     for _source in _sources {
@@ -176,8 +188,13 @@ pub async fn install(
     Extension(db): DbExt,
     Extension(octocrab): Extension<Octocrab>,
 ) -> Result<Response> {
-    // let installs = octocrab.apps().installations().send().await?;
-    // println!("installs: {installs:?}");
+    // TODO: confirm the installation exists
+    // let author = octocrab
+    //     .installation(params.installation_id.into())
+    //     .current()
+    //     .user()
+    //     .await?;
+    // println!("{author:?}");
 
     if let Some(source) = db
         .get_collection::<data::Source>()?
@@ -189,53 +206,54 @@ pub async fn install(
         db.set(&data::Source {
             id: Uuid::new_v4(),
             owner: user.base.id,
-            project: user.data.current_project,
+            projects: vec![user.data.current_project],
             installation_id: Some(params.installation_id),
+            installation_time: chrono::Utc::now(),
         })?;
     }
 
-    let insta = octocrab.installation(params.installation_id.into());
+    Ok(Redirect::to("/sources").into_response())
+}
 
-    let repo = insta.repos("ruda-app", "ruda").get_content().send().await?;
-    let mut items = "".to_string();
-    for item in repo.items {
-        items.push_str(&format!("{}\n", item.path))
+/// Recreates missing source items based on information from third-parties
+/// (e.g. github).
+// TODO: this should require properly connecting the account with github
+// account, so then we can use the login string for grabbing installation id.
+// Alternatively the email can be used, but it would have to match and get
+// confirmed beforehand.
+async fn recreate(user: &User, db: &Database, octocrab: Octocrab) -> Result<()> {
+    let installs = octocrab.apps().installations().per_page(20).send().await?;
+    let mut installation_id = None;
+    println!("email: {}", user.base.email);
+    for install in installs {
+        println!("install email: {:?}", install.account.email);
+        println!("install login: {}", install.account.login);
+        if let Some(email) = install.account.email {
+            if email == user.base.email {
+                installation_id = Some(install.id);
+                break;
+            }
+        }
     }
 
-    Ok(items.into_response())
+    let installation_id = installation_id.ok_or(anyhow::Error::msg(
+        "no valid installations for user based on email match with github",
+    ))?;
 
-    // let insta = octocrab
-    //     .apps()
-    //     .installation(params.installation_id.parse::<u64>()?.into())
-    //     .await?;
-    // println!("install: {insta:?}");
+    let sources = db.get_collection::<data::Source>()?;
+    if sources
+        .iter()
+        .find(|s| s.installation_id == Some(*installation_id))
+        .is_none()
+    {
+        db.set(&data::Source {
+            id: Uuid::new_v4(),
+            owner: user.base.id,
+            projects: vec![user.data.current_project],
+            installation_id: Some(*installation_id),
+            installation_time: chrono::Utc::now(),
+        })?;
+    }
 
-    // println!("user: {}", insta.account.login);
-    // // insta.access_tokens_url
-
-    // let repo = octocrab
-    //     .repos(&insta.account.login, "outcome")
-    //     .get_content()
-    //     .send()
-    //     .await
-    //     .unwrap();
-    // println!("repo items: {:?}", repo.items);
-
-    // let repos = octocrab.users(&insta.account.login).repos().send().await?;
-    // println!("repos: {repos:?}");
-
-    // let repos = insta
-    //     .current()
-    //     .list_repos_for_authenticated_user()
-    //     .per_page(100)
-    //     .type_("all")
-    //     .send()
-    //     .await
-    //     .expect("failed fetching repos");
-
-    // let mut items = "".to_string();
-    // for item in repo.items {
-    //     items.push_str(&format!("{}\n", item.path))
-    // }
-    // Ok(items)
+    Ok(())
 }

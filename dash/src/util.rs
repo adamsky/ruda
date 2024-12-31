@@ -10,16 +10,23 @@ pub fn create_user(db: &Database) -> Result<User> {
     let user = User::new(&db)?;
     db.set(&user)?;
 
+    init_user(user.id, db)?;
+
+    Ok(user)
+}
+
+/// Creates application-specific data for an existing base user.
+pub fn init_user(user_id: UserId, db: &Database) -> Result<UserData> {
     let mut project = Project::default();
-    project.owner = user.id;
+    project.owner = user_id;
     db.set(&project)?;
 
-    let app_user = UserData {
-        id: user.id,
+    let user_data = UserData {
+        id: user_id,
         current_project: project.id,
         ..Default::default()
     };
-    db.set(&app_user)?;
+    db.set(&user_data)?;
 
-    Ok(user)
+    Ok(user_data)
 }

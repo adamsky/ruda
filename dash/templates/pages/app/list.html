@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   {% include "partials/head.html" %}
-  <body>
+  <body {% if user.settings.dark_mode %} data-bs-theme="dark" {% endif %}>
     <div class="page">
       {% include "partials/sidebar.html" %}
       {% include "partials/navbar.html" %}
@@ -21,7 +21,7 @@
                   <a href="" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal" data-bs-target="#modal-add-app">
                     <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 5l0 14"></path><path d="M5 12l14 0"></path></svg>
-                    New
+                    Add
                   </a>
                 </div>
               </div>
@@ -40,9 +40,9 @@
                     <table class="table table-vcenter table-mobile-md card-table">
                       <thead>
                         <tr>
-                          <th>Name</th>
-                          <th>Installation</th>
-                          <th>Repositories</th>
+                          <th>App</th>
+                          <th>Source</th>
+                          <th>Environments</th>
                           <th class="w-1"></th>
                         </tr>
                       </thead>
@@ -51,22 +51,24 @@
                         <tr style="transform: rotate(0);">
                           <td data-label="Name">
                             <div class="d-flex py-1 align-items-center">
-                              <span class="avatar me-2" style="background-image: url(/image/{{ app.avatar }})"></span>
+                              <span class="avatar me-2" style="background-image: url(/image/{{ app.inner.avatar }})"></span>
                               <div class="flex-fill">
-                                <div class="font-weight-medium">{{ app.name }}</div>
-                                <div class="text-secondary">test</div>
+                                <div class="font-weight-medium">{{ app.inner.name }}</div>
+                                <div class="badge bg-green text-green-fg">{{ app.status }}</div>
                               </div>
                             </div>
                           </td>
-                          <td data-label="Installation">
-                            <div class="text-secondary">#{{ app.id }}</div>
+                          <td data-label="Source">
+                            <div class="text-secondary">{{ app.inner.source_url }}</div>
                           </td>
-                          <td class="text-secondary" data-label="Repositories">
-                            test
+                          <td class="text-secondary" data-label="Environments">
+                            {% for env in app.inner.envs %}
+                              {{ env.handle }}
+                            {% endfor %}
                           </td>
                           <td>
                             <div class="btn-list flex-nowrap">
-                              <a href="/app/{{ app.id }}" class="btn stretched-link">
+                              <a href="/app/{{ app.inner.id }}" class="btn stretched-link">
                                 View
                               </a>
                             </div>

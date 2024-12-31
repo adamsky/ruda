@@ -4,6 +4,20 @@ use saasbase::{
 };
 use uuid::Uuid;
 
+pub mod app;
+pub mod env;
+pub mod key;
+pub mod machine;
+pub mod project;
+pub mod storage;
+
+pub use app::App;
+pub use env::Env;
+pub use key::Key;
+pub use machine::Machine;
+pub use project::Project;
+pub use storage::Storage;
+
 /// Application-specific user data. Uses the same user id as the base user
 /// definition from `saasbase`.
 ///
@@ -17,6 +31,16 @@ pub struct UserData {
     pub id: UserId,
 
     pub current_project: Uuid,
+
+    // pub cloudflare: Cloudflare,
+    // pub hetzner: Hetzner,
+    pub github: Github,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct Github {
+    /// Verified github handle
+    pub handle: Option<String>,
 }
 
 impl Default for UserData {
@@ -24,6 +48,7 @@ impl Default for UserData {
         Self {
             id: Uuid::nil(),
             current_project: Uuid::nil(),
+            github: Default::default(),
         }
     }
 }
@@ -35,83 +60,6 @@ impl Collectable for UserData {
 }
 
 impl Identifiable for UserData {
-    fn get_id(&self) -> Uuid {
-        self.id
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Project {
-    pub id: Uuid,
-    pub owner: UserId,
-
-    pub name: String,
-    pub acl: Vec<String>,
-}
-
-impl Default for Project {
-    fn default() -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            owner: Uuid::nil(),
-            // TODO: use project namegen
-            name: "newproj".to_string(),
-            acl: vec![],
-        }
-    }
-}
-
-impl Collectable for Project {
-    fn get_collection_name() -> &'static str {
-        "project"
-    }
-}
-
-impl Identifiable for Project {
-    fn get_id(&self) -> Uuid {
-        self.id
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Machine {
-    pub id: Uuid,
-    pub owner: UserId,
-    pub project: Uuid,
-
-    pub name: String,
-    pub status: String,
-}
-
-impl Collectable for Machine {
-    fn get_collection_name() -> &'static str {
-        "machine"
-    }
-}
-
-impl Identifiable for Machine {
-    fn get_id(&self) -> Uuid {
-        self.id
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Application {
-    pub id: Uuid,
-    pub owner: UserId,
-    pub project: Uuid,
-
-    pub name: String,
-    pub avatar: ImageId,
-}
-
-impl Collectable for Application {
-    fn get_collection_name() -> &'static str {
-        "application"
-    }
-}
-
-impl Identifiable for Application {
     fn get_id(&self) -> Uuid {
         self.id
     }
@@ -134,16 +82,15 @@ pub struct Source {
     /// the proper installation id that also matched their github infomation.
     pub owner: UserId,
 
-    // TODO: maybe allow single source to be used by multiple projects? At
-    // least with github app installations there's no nice way of doing
-    // single app install per project.
-    pub project: Uuid,
+    // Since with github app installations we can't do single install per
+    // project, sources can be shared between multiple projects.
+    pub projects: Vec<Uuid>,
 
     /// Id of the installation as provided by the user that installed the
     /// github app.
     pub installation_id: Option<u64>,
-    // TODO: Source could be shared accross multiple projects.
-    // pub projects: Vec<Uuid>,
+
+    pub installation_time: chrono::DateTime<chrono::Utc>,
 }
 
 impl Collectable for Source {
