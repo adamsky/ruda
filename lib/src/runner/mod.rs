@@ -2,15 +2,15 @@
 
 pub mod msg;
 
-use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
-use msg::Message;
 use tokio::{process::Command, task::JoinHandle};
 // use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use crate::api;
+use crate::{api, Result};
+
+use msg::Message;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -37,7 +37,7 @@ pub struct Handle {
     // TODO: allow communication with the runner locally using channels
     pub comms: (),
 
-    pub join: JoinHandle<Result<(), anyhow::Error>>,
+    pub join: JoinHandle<Result<()>>,
 }
 
 /// Spawns a new runner task and immediately returns a handle to it.

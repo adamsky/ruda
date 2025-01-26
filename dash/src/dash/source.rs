@@ -15,7 +15,7 @@ use uuid::Uuid;
 use crate::{
     data,
     extract::{self, User},
-    Result,
+    Error, Result,
 };
 
 use super::partial::{Head, Sidebar};
@@ -155,6 +155,7 @@ pub async fn single(
     Extension(octocrab): Extension<Octocrab>,
 ) -> Result<impl IntoResponse> {
     let mut source_ = db.get::<data::Source>(id)?;
+    // HACK
     let mut source = Source::default();
     if let Some(install) = source_.installation_id {
         if let Ok(install) = octocrab.apps().installation(install.into()).await {
@@ -228,16 +229,20 @@ async fn recreate(user: &User, db: &Database, octocrab: Octocrab) -> Result<()> 
     for install in installs {
         println!("install email: {:?}", install.account.email);
         println!("install login: {}", install.account.login);
-        if let Some(email) = install.account.email {
-            if email == user.base.email {
-                installation_id = Some(install.id);
-                break;
-            }
+        if user
+            .base
+            .linked_accounts
+            .contains(&saasbase::oauth::Link::Github {
+                login: install.account.login,
+            })
+        {
+            installation_id = Some(install.id);
+            break;
         }
     }
 
-    let installation_id = installation_id.ok_or(anyhow::Error::msg(
-        "no valid installations for user based on email match with github",
+    let installation_id = installation_id.ok_or(Error::Other(
+        "no valid installations for user based on email match with github".to_string(),
     ))?;
 
     let sources = db.get_collection::<data::Source>()?;

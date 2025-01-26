@@ -95,76 +95,9 @@
           <input type="text" class="form-control" name="name" placeholder="New application name">
         </div>
         <div class="row">
-          <div class="col">
-            <div class="mb-3">
-              <label class="form-label">Select with avatars</label>
-              <select type="text" class="form-select" id="select-source-account" value="">
-                <option value="1" data-custom-properties="&lt;span class=&quot;avatar avatar-xs&quot; style=&quot;background-image: url(./avatar)&quot;&gt;&lt;/span&gt;">Paweł Kuna</option>
-                <option value="2" data-custom-properties="&lt;span class=&quot;avatar avatar-xs&quot;&gt;JL&lt;/span&gt;">Jeffie Lewzey</option>
-              </select>
-            </div>
-          </div>
-          <script>
-            // @formatter:off
-            document.addEventListener("DOMContentLoaded", function () {
-            	var el;
-            	window.TomSelect && (new TomSelect(el = document.getElementById('select-source-account'), {
-            		copyClassesToDropdown: false,
-            		dropdownParent: 'body',
-            		controlInput: '<input>',
-            		render:{
-            			item: function(data,escape) {
-            				if( data.customProperties ){
-            					return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
-            				}
-            				return '<div>' + escape(data.text) + '</div>';
-            			},
-            			option: function(data,escape){
-            				if( data.customProperties ){
-            					return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
-            				}
-            				return '<div>' + escape(data.text) + '</div>';
-            			},
-            		},
-            	}));
-            });
-            // @formatter:on
-          </script>
-          <div class="col">
-            <div class="mb-3">
-              <label class="form-label">Select with avatars</label>
-              <select type="text" class="form-select" id="select-source-repo" value="">
-                <option value="1" data-custom-properties="&lt;span class=&quot;avatar avatar-xs&quot; style=&quot;background-image: url(./avatar)&quot;&gt;&lt;/span&gt;">Paweł Kuna</option>
-                <option value="2" data-custom-properties="&lt;span class=&quot;avatar avatar-xs&quot;&gt;JL&lt;/span&gt;">Jeffie Lewzey</option>
-              </select>
-            </div>
-          </div>
-          <script>
-            // @formatter:off
-            document.addEventListener("DOMContentLoaded", function () {
-            	var el;
-            	window.TomSelect && (new TomSelect(el = document.getElementById('select-source-repo'), {
-            		copyClassesToDropdown: false,
-            		dropdownParent: 'body',
-            		controlInput: '<input>',
-            		render:{
-            			item: function(data,escape) {
-            				if( data.customProperties ){
-            					return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
-            				}
-            				return '<div>' + escape(data.text) + '</div>';
-            			},
-            			option: function(data,escape){
-            				if( data.customProperties ){
-            					return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
-            				}
-            				return '<div>' + escape(data.text) + '</div>';
-            			},
-            		},
-            	}));
-            });
-            // @formatter:on
-          </script>
+          <div hx-get="/html/modal/app/sources" hx-trigger="intersect from:#modal-add-app" hx-swap="outerHTML"></div>
+          <div hx-get="/html/modal/app/repos" hx-trigger="sourceAccountsLoaded from:body" hx-swap="outerHTML"
+            hx-include="[id='select-source-account']"></div>
         </div>
         <div class="row">
           <div class="col-lg-12">

@@ -59,7 +59,7 @@
                             </div>
                           </td>
                           <td data-label="Source">
-                            <div class="text-secondary">{{ app.inner.source_url }}</div>
+                            <div class="text-secondary">{{ app.inner.source_account }}/{{ app.inner.source_repo }}</div>
                           </td>
                           <td class="text-secondary" data-label="Environments">
                             {% for env in app.inner.envs %}
@@ -89,7 +89,7 @@
         {% include "partials/footer.html" %}
       </div>
     </div>
-    {% include "partials/modals.html" %}
+    {% include "partials/modals/modals.html" %}
     {% include "partials/scripts.html" %}
   </body>
 </html>

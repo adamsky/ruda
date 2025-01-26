@@ -32,6 +32,9 @@ pub struct Handle {
     pub exec: Executor<(Uuid, Request), std::result::Result<Response, String>>,
 }
 
+pub type MachineHandles =
+    Arc<Mutex<HashMap<Uuid, Executor<Request, std::result::Result<Response, String>>>>>;
+
 pub fn spawn(db: Database, cancel: CancellationToken) -> Result<Handle> {
     // requests channel for the returned handle
     let (mut handle_sender, handle_receiver) = mpsc::channel::<(
@@ -97,7 +100,7 @@ pub fn spawn(db: Database, cancel: CancellationToken) -> Result<Handle> {
                             Some(Ok(msg)) = read.next() => {
                                 // TODO: how to
                                 // handle message locally
-                                let resp = handle_msg(msg.try_into()?, db.clone()).await?;
+                                let resp = handle_msg(msg.try_into()?, db.clone(), machines).await?;
                                 // machines.lock().await.insert(Uuid::new_v4(), write);
 
                                 // return the response to the caller
@@ -126,7 +129,11 @@ pub fn spawn(db: Database, cancel: CancellationToken) -> Result<Handle> {
     })
 }
 
-async fn handle_msg(msg: Message, db: Database) -> Result<Message> {
+async fn handle_msg(
+    msg: Message,
+    db: Database,
+    machine_handles: MachineHandles,
+) -> Result<Message> {
     match msg {
         Message::IntroductionRequest(code) => {
             log::info!("new introduction with code: {code}");
@@ -140,7 +147,7 @@ async fn handle_msg(msg: Message, db: Database) -> Result<Message> {
                 machine.status = data::machine::Status::Connected;
                 db.set(&machine)?;
 
-                // machines.insert();
+                // machine_handles.lock().await.insert(machine.id, )
 
                 return Ok(Message::IntroductionResponse(true));
             }
@@ -167,6 +174,8 @@ impl<IN, OUT> Executor<IN, OUT> {
             .send((msg, sender))
             .await
             .map_err(|e| "interface failed, receiver dropped: {e}");
-        Ok(receiver.await?)
+        Ok(receiver
+            .await
+            .map_err(|e| Error::NetworkError(e.to_string()))?)
     }
 }

@@ -24,10 +24,8 @@
               <!-- Page title actions -->
               <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
-                  <a href="" class="btn d-none d-sm-inline-block">
-                    <!-- Download SVG icon from http://tabler-icons.io/i/plus -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M12 5l0 14"></path><path d="M5 12l14 0"></path></svg>
-                    View on Github
+                  <a href="https://github.com/{{ app.inner.source_account }}/{{ app.inner.source_repo }}" class="btn d-none d-sm-inline-block" target="_blank">
+                    View source on Github
                   </a>
                 </div>
               </div>
@@ -45,6 +43,14 @@
                   <div class="card-body">
                     <div class="datagrid">
                       <div class="datagrid-item">
+                        <div class="datagrid-title">App ID</div>
+                        <div class="datagrid-content">{{ app.inner.id }}</div>
+                      </div>
+                      <div class="datagrid-item">
+                        <div class="datagrid-title">App Name</div>
+                        <div class="datagrid-content">{{ app.inner.name }}</div>
+                      </div>
+                      <div class="datagrid-item">
                         <div class="datagrid-title">Domain Name</div>
                         <div class="datagrid-content">{{ app.inner.domain }}</div>
                       </div>
@@ -53,19 +59,11 @@
                         <div class="datagrid-content">false</div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">App ID</div>
-                        <div class="datagrid-content">{{ app.inner.id }}</div>
-                      </div>
-                      <div class="datagrid-item">
-                        <div class="datagrid-title">Expiration date</div>
-                        <div class="datagrid-content">–</div>
-                      </div>
-                      <div class="datagrid-item">
-                        <div class="datagrid-title">Creator</div>
+                        <div class="datagrid-title">Owner</div>
                         <div class="datagrid-content">
                           <div class="d-flex align-items-center">
                             <span class="avatar avatar-xs me-2 rounded" style="background-image: url(./static/avatars/000m.jpg)"></span>
-                            Paweł Kuna
+                            {{ app.owner }}
                           </div>
                         </div>
                       </div>
@@ -118,16 +116,31 @@
                         </div>
                       </div>
                       <div class="datagrid-item">
-                        <div class="datagrid-title">Longer description</div>
+                        <div class="datagrid-title">Machine</div>
                         <div class="datagrid-content">
-                          Lorem ipsum dolor sit amet, consectetur adipisicing elit.
+                          <div id="app-machine-selector" class="col">
+                            <div class="mb-3">
+                              <select name="machine" type="text" class="form-select" id="select-app-machine"
+                                 hx-post="/app/{{ app.inner.id }}/update" hx-trigger="change" hx-swap="none">
+                                <option value="None"
+                                {% if app.inner.machine.is_none() %}
+                                selected="selected"
+                                {% endif %}
+                                >None</option>
+                                {% for machine in machines %}
+                                <option value="{{ machine.0 }}"
+                                {% if let Some(app_machine) = app.inner.machine %}
+                                {% if app_machine == machine.0.as_ref() %}
+                                selected="selected"
+                                {% endif %}
+                                {% endif %}
+                                >{{ machine.1 }}</option>
+                                {% endfor %}
+                              </select>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div class="form-floating mt-4 mb-3">
-                      <input name="source_url" type="url" class="form-control" id="floating-input" value="{{ app.inner.source_url }}" autocomplete="off"
-                        hx-post="/app/{{ app.inner.id }}/update" hx-trigger="change">
-                      <div style="position: relative !important; height: 0px !important; width: 0px !important; float: left !important;" data-lastpass-icon-root=""></div><label for="floating-input">Git Source URL</label>
                     </div>
                   </div>
                 </div>
@@ -193,7 +206,7 @@
         {% include "partials/footer.html" %}
       </div>
     </div>
-    {% include "partials/modals.html" %}
+    {% include "partials/modals/modals.html" %}
     {% include "partials/scripts.html" %}
   </body>
 </html>

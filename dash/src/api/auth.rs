@@ -6,7 +6,7 @@ use saasbase::{
     axum::DbExt,
 };
 
-use crate::Result;
+use crate::{Error, Result};
 
 /// Authenticates user using email and password, sending back newly generated
 /// token that can be used for authenticating subsequent requests.
@@ -22,7 +22,7 @@ pub async fn auth(
         // &user.password_hash.ok_or(Error::UserDoesNotHavePassword)?,
         &user
             .password_hash
-            .ok_or(anyhow::anyhow!("user does not have password"))?,
+            .ok_or(Error::Other("user does not have password".to_string()))?,
     )?;
 
     // generate a new token

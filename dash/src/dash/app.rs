@@ -14,7 +14,7 @@ use http_body_util::BodyExt;
 use saasbase::{
     axum::{askama::HtmlTemplate, ConfigExt, DbExt},
     db::decode,
-    Router,
+    Database, Router,
 };
 use url::Url;
 use uuid::Uuid;
@@ -40,16 +40,24 @@ pub struct Application {
     #[serde(flatten)]
     pub inner: data::App,
 
+    pub owner: String,
     pub status: String,
 }
 
-impl From<data::App> for Application {
-    fn from(value: data::App) -> Self {
-        Self {
-            inner: value,
-            // TODO: determine status
-            status: "operational".to_string(),
-        }
+impl Application {
+    fn resolve(app: data::App, db: &Database) -> Result<Self> {
+        Ok(Self {
+            owner: db.get::<saasbase::User>(app.owner)?.name,
+            status: match &app.machine {
+                Some(machine) => {
+                    // TODO: contact machine to get current status
+                    "operational".to_string()
+                }
+                None => "unassigned".to_string(),
+            },
+
+            inner: app,
+        })
     }
 }
 
@@ -75,14 +83,7 @@ pub async fn list(
         .get_collection::<data::App>()?
         .into_iter()
         .filter(|app| app.project == user.data.current_project)
-        .map(|app| app.into())
-        // .get_collection_raw::<data::App>()?
-        // .find_map(|(_, value)| {
-        //     decode::<data::App>(&value)
-        //         .ok()
-        //         .filter(|app| app.project == user.data.current_project)
-        // })
-        // .ok_or(anyhow::Error::msg("no apps found for project"))?
+        .filter_map(|app| Application::resolve(app, &db).ok())
         .collect();
 
     println!("apps listed in {}ms", now.elapsed().as_millis());
@@ -108,6 +109,8 @@ pub struct Single {
     config: saasbase::Config,
 
     app: Application,
+
+    machines: Vec<(Uuid, String)>,
 }
 
 pub async fn single(
@@ -123,6 +126,13 @@ pub async fn single(
         return Ok(Redirect::to("/apps").into_response());
     }
 
+    let machines = db
+        .get_collection::<data::Machine>()?
+        .into_iter()
+        .filter(|m| m.owner == user.base.id)
+        .map(|m| (m.id, m.name))
+        .collect::<Vec<_>>();
+
     Ok(HtmlTemplate(Single {
         head: Head {
             title: format!("{}", app.name),
@@ -131,13 +141,15 @@ pub async fn single(
         sidebar: Sidebar::at("Applications", user.base.id, &db)?,
         user: user.base,
         config: (*config).clone(),
-        app: app.into(),
+        app: Application::resolve(app, &db)?,
+        machines,
     })
     .into_response())
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UpdateForm {
+    machine: Option<String>,
     source_url: Option<String>,
 }
 
@@ -150,6 +162,13 @@ pub async fn single_update(
 ) -> Result<impl IntoResponse> {
     let mut app = db.get::<data::App>(id)?;
 
+    if let Some(machine_id) = update.machine {
+        if machine_id.as_str() == "None" {
+            app.machine = None;
+        } else {
+            app.machine = Some(machine_id.parse().unwrap());
+        }
+    }
     if let Some(source_url) = update.source_url {
         app.source_url = source_url;
     }
@@ -162,7 +181,12 @@ pub async fn single_update(
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NewForm {
     pub name: String,
-    pub source_url: String,
+
+    // Source information
+    pub account: Option<String>,
+    pub repo: Option<String>,
+    pub url: Option<String>,
+
     pub domain: String,
 }
 
@@ -176,8 +200,25 @@ pub async fn new(
 
     app.owner = user.base.id;
     app.project = user.data.current_project;
+    app.domain = new.domain;
+
+    if new.name.is_empty() {
+        return Err(Error::Other("application name cannot be empty".to_string()).into());
+    }
     app.name = new.name;
-    app.source_url = new.source_url;
+
+    if let Some(account) = new.account {
+        app.source_account = account;
+        app.source_repo = new
+            .repo
+            .ok_or(Error::Other("source repo required".to_string()))?;
+    }
+
+    if let Some(source_url) = new.url {
+        app.source_url = source_url;
+    } else {
+        // TODO: construct the source url
+    }
 
     db.set(&app)?;
 

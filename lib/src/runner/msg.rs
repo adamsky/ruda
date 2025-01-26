@@ -1,5 +1,7 @@
 use uuid::Uuid;
 
+use crate::Error;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Message {
     IntroductionRequest(Uuid),
@@ -9,7 +11,7 @@ pub enum Message {
 }
 
 impl TryInto<tokio_tungstenite::tungstenite::Message> for Message {
-    type Error = anyhow::Error;
+    type Error = Error;
 
     fn try_into(self) -> std::result::Result<tokio_tungstenite::tungstenite::Message, Self::Error> {
         Ok(tokio_tungstenite::tungstenite::Message::binary(
@@ -19,9 +21,9 @@ impl TryInto<tokio_tungstenite::tungstenite::Message> for Message {
 }
 
 impl TryFrom<tokio_tungstenite::tungstenite::Message> for Message {
-    type Error = anyhow::Error;
+    type Error = Error;
 
-    fn try_from(msg: tokio_tungstenite::tungstenite::Message) -> Result<Self, anyhow::Error> {
+    fn try_from(msg: tokio_tungstenite::tungstenite::Message) -> Result<Self, Self::Error> {
         match msg {
             tokio_tungstenite::tungstenite::Message::Binary(bytes) => Ok(pot::from_slice(&bytes)?),
             _ => unimplemented!(),

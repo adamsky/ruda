@@ -1,16 +1,37 @@
 use std::collections::HashMap;
 
-use saasbase::{Database, UserId};
+use askama::Template;
+use axum::response::IntoResponse;
+use axum::routing::get;
+use axum::Extension;
+use octocrab::Octocrab;
+use saasbase::axum::askama::HtmlTemplate;
+use saasbase::axum::DbExt;
+use saasbase::{Database, Router, UserId};
 use uuid::Uuid;
 
-use crate::data::{Project, UserData};
+use crate::data::{self, Project, UserData};
 use crate::{util, Result};
+
+mod modal;
 
 pub mod footer {
     pub fn year() -> String {
         use chrono::Datelike;
         chrono::Utc::now().year().to_string()
     }
+}
+
+pub fn router() -> Router {
+    Router::new().nest(
+        "/html",
+        Router::new()
+            .route(
+                "/modal/app/sources",
+                get(modal::new_app_modal_source_accounts),
+            )
+            .route("/modal/app/repos", get(modal::new_app_modal_source_repos)),
+    )
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

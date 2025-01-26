@@ -1,5 +1,7 @@
 use serde::de::DeserializeOwned;
 
+use crate::Result;
+
 pub static CONFIG_FILE: &'static str = "ruda.toml";
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -20,12 +22,12 @@ pub struct Runner {
     pub test: String,
 }
 
-pub fn load<T: DeserializeOwned + Default>() -> anyhow::Result<T> {
+pub fn load<T: DeserializeOwned + Default>() -> Result<T> {
     load_from(CONFIG_FILE)
 }
 
 /// Loads application config from toml file at the given path.
-pub fn load_from<T: DeserializeOwned + Default>(path: impl AsRef<str>) -> anyhow::Result<T> {
+pub fn load_from<T: DeserializeOwned + Default>(path: impl AsRef<str>) -> Result<T> {
     let config = config::Config::builder()
         .add_source(config::File::with_name(path.as_ref()).required(false))
         .add_source(config::File::with_name(&format!("secret.{}", path.as_ref())).required(false))

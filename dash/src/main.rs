@@ -106,7 +106,8 @@ async fn main() -> Result<()> {
                 code: machine.secret,
             },
             cancel,
-        )?
+        )
+        .map_err(|e| Error::Other(e.to_string()))?
     });
 
     println!("after runner");

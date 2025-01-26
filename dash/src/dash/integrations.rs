@@ -20,6 +20,7 @@ use super::partial::{Head, Sidebar};
 pub fn router() -> Router {
     Router::new()
         .route("/integrations", get(integrations))
+        // .route("/integrations/github", get(github_get).post(github_post))
         .route("/integrations/hrobot", post(hrobot_post))
         .route("/integrations/cloudflare", post(cloudflare_post))
 }
@@ -47,6 +48,7 @@ pub struct Integrations {
     sidebar: Sidebar,
     user: saasbase::User,
     config: saasbase::Config,
+    github: bool,
 }
 
 pub async fn integrations(
@@ -60,6 +62,12 @@ pub async fn integrations(
             ..Default::default()
         },
         sidebar: Sidebar::at("Integrations", user.base.id, &db)?,
+
+        github: user.base.linked_accounts.iter().any(|a| match a {
+            saasbase::oauth::Link::Github { .. } => true,
+            _ => false,
+        }),
+
         user: user.base,
         config: (*config).clone(),
     }))

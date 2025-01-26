@@ -5,9 +5,7 @@ use saasbase::{
 };
 use uuid::Uuid;
 
-use anyhow::Result;
-
-use crate::data;
+use crate::{data, Result};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
@@ -22,6 +20,8 @@ pub struct App {
 
     pub machine: Option<Uuid>,
 
+    pub source_account: String,
+    pub source_repo: String,
     pub source_url: String,
 
     pub envs: Vec<data::Env>,
@@ -56,6 +56,8 @@ impl Default for App {
 
             machine: None,
 
+            source_account: "".to_string(),
+            source_repo: "".to_string(),
             source_url: "".to_string(),
 
             envs: vec![

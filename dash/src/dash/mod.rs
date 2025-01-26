@@ -43,6 +43,7 @@ pub fn router() -> Router {
         .merge(integrations::router())
         .merge(notifications::router())
         .merge(key::router())
+        .merge(partial::router())
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Template)]

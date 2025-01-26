@@ -13,7 +13,7 @@ use saasbase::{
 use crate::{
     dash::partial,
     data::{self, app},
-    extract, realtime, Result,
+    extract, realtime, Error, Result,
 };
 
 pub fn router() -> Router {
@@ -48,7 +48,7 @@ pub async fn env(
         .envs
         .iter()
         .find(|e| e.handle == env)
-        .ok_or(anyhow::Error::msg("env not found"))?;
+        .ok_or(Error::Other("env not found".to_string()))?;
     Ok(HtmlTemplate(Environment {
         head: partial::Head {
             title: format!("{} | {}", env.name, app.name),
@@ -105,7 +105,7 @@ pub async fn env_deploy(
     Path((app, env)): Path<(Uuid, String)>,
     Extension(config): ConfigExt,
     Extension(db): DbExt,
-    Extension(github): Extension<octocrab::Octocrab>,
+    Extension(octocrab): Extension<octocrab::Octocrab>,
     Extension(realtime): Extension<realtime::Handle>,
 ) -> Result<impl IntoResponse> {
     log::debug!("deploy app env");
@@ -115,12 +115,16 @@ pub async fn env_deploy(
         .envs
         .into_iter()
         .find(|e| e.handle == env)
-        .ok_or(anyhow::Error::msg("bad env handle"))?;
+        .ok_or(Error::Other("bad env handle".to_string()))?;
 
-    let source_url = app.source_url.parse::<Url>()?;
-    let mut source_url_segments = source_url.path_segments().unwrap();
-    let repo_owner = source_url_segments.next().unwrap();
-    let repo_name = source_url_segments.next().unwrap();
+    // TODO: support deploying from plain git url
+    // let source_url = app
+    //     .source_url
+    //     .parse::<Url>()
+    //     .map_err(|e| Error::Other(e.to_string()))?;
+    // let mut source_url_segments = source_url.path_segments().unwrap();
+    // let repo_owner = source_url_segments.next().unwrap();
+    // let repo_name = source_url_segments.next().unwrap();
 
     // get the code
 
@@ -140,12 +144,17 @@ pub async fn env_deploy(
             Some(id) => id,
             None => continue,
         };
-        let installation = github.installation(installation_id.into());
 
-        println!("installation");
+        if let Ok(installation) = octocrab.apps().installation(installation_id.into()).await {
+            if installation.account.login != app.source_account {
+                continue;
+            }
+        }
+
+        let installation = octocrab.installation(installation_id.into());
 
         let repo = installation
-            .repos(repo_owner, repo_name)
+            .repos(&app.source_account, &app.source_repo)
             .download_tarball(env.branch.clone())
             .await;
 
@@ -162,7 +171,15 @@ pub async fn env_deploy(
 
             while let Some(next) = body.frame().await {
                 let frame = next?;
+                // only write data frames to file
                 if let Some(chunk) = frame.data_ref() {
+                    if chunk.len() < 300 {
+                        if core::str::from_utf8(chunk).unwrap() == "404: Not Found" {
+                            return Err(Error::Other(format!(
+                                "unable to download repo tarball at the speficied address (check branch name)"
+                            )));
+                        }
+                    }
                     file.write_all(chunk).await?;
                 }
             }
@@ -184,10 +201,12 @@ pub async fn env_deploy(
     // }
 
     // Execute the deploy request through the realtime interface.
-    realtime
+    let resp = realtime
         .exec
         .execute((app.id, realtime::Request::Deploy { env: env.handle }))
         .await?;
+
+    println!("machine response: {:?}", resp);
 
     Ok(())
 }
